@@ -27,6 +27,15 @@ export default function ExpensesPage() {
   const { expenses, total, isLoading, createExpense, updateExpense, deleteExpense } = useExpenses(filters);
   const { categories, subcategories } = useCategories();
 
+  const activeFilterCount = [filters.dateFrom, filters.dateTo, filters.categoryId, filters.subcategoryId].filter(Boolean).length;
+
+  const handleClearFilters = (newFilters: Filters) => {
+    setFilters(newFilters);
+    if (!newFilters.dateFrom && !newFilters.dateTo && !newFilters.categoryId && !newFilters.subcategoryId) {
+      setFiltersOpen(false);
+    }
+  };
+
   const handleSubmit = async (data: Parameters<typeof createExpense.mutateAsync>[0]) => {
     try {
       if (editingExpense) {
@@ -61,13 +70,33 @@ export default function ExpensesPage() {
           <h1 className="font-display text-2xl font-bold">Expenses</h1>
           <p className="text-sm text-muted-foreground">Track where your money goes</p>
         </div>
-        <Button onClick={() => { setEditingExpense(null); setFormOpen(true); }} size="sm" className="gap-1.5">
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Add Expense</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 relative"
+            onClick={() => setFiltersOpen((v) => !v)}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            <span className="hidden sm:inline">Filters</span>
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground px-1">
+                {activeFilterCount}
+              </span>
+            )}
+          </Button>
+          <Button onClick={() => { setEditingExpense(null); setFormOpen(true); }} size="sm" className="gap-1.5">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Add Expense</span>
+          </Button>
+        </div>
       </div>
 
-      <ExpenseFilters filters={filters} onChange={setFilters} />
+      <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+        <CollapsibleContent>
+          <ExpenseFilters filters={filters} onChange={handleClearFilters} />
+        </CollapsibleContent>
+      </Collapsible>
 
       <div className="glass-card px-4 py-3 flex items-center justify-between">
         <span className="text-sm text-muted-foreground">
