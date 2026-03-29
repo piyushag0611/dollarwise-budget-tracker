@@ -9,6 +9,7 @@ import { AppLayout } from "@/components/AppLayout";
 import LoginPage from "@/pages/LoginPage";
 import ExpensesPage from "@/pages/ExpensesPage";
 import CategoriesPage from "@/pages/CategoriesPage";
+import AnalyticsPage from "@/pages/AnalyticsPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<LoginPage />} />
     <Route path="/" element={<ProtectedRoute><ExpensesPage /></ProtectedRoute>} />
+    <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
     <Route path="/categories" element={<ProtectedRoute><CategoriesPage /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>

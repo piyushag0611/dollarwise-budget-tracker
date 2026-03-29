@@ -1,10 +1,11 @@
-import { Receipt, Tags, Moon, Sun } from "lucide-react";
+import { Receipt, Tags, Moon, Sun, BarChart3 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
 const tabs = [
   { label: "Transactions", path: "/", icon: Receipt },
+  { label: "Analytics", path: "/analytics", icon: BarChart3 },
   { label: "Categories", path: "/categories", icon: Tags },
 ];
 
