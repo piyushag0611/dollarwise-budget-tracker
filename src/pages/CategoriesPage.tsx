@@ -21,10 +21,11 @@ import {
 import { useCategories } from "@/hooks/useCategories";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 export default function CategoriesPage() {
   const {
-    categories, getSubcategoriesForCategory, getCategoryExpenseCount,
+    categories, getSubcategoriesForCategory, getCategoriesByType, getCategoryExpenseCount,
     createCategory, updateCategory, deleteCategory,
     createSubcategory, updateSubcategory, deleteSubcategory,
   } = useCategories();
@@ -34,6 +35,7 @@ export default function CategoriesPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [parentCategoryId, setParentCategoryId] = useState<string | null>(null);
   const [name, setName] = useState("");
+  const [categoryType, setCategoryType] = useState<"income" | "expense">("expense");
   const [deleteTarget, setDeleteTarget] = useState<{ type: "category" | "subcategory"; id: string; name: string; warning?: string } | null>(null);
 
   const toggleExpand = (id: string) => {
@@ -44,10 +46,11 @@ export default function CategoriesPage() {
     });
   };
 
-  const openCategoryDialog = (existing?: { id: string; name: string }) => {
+  const openCategoryDialog = (existing?: { id: string; name: string; type?: string }) => {
     setDialogMode("category");
     setEditId(existing?.id ?? null);
     setName(existing?.name ?? "");
+    setCategoryType((existing?.type as "income" | "expense") ?? "expense");
     setParentCategoryId(null);
   };
 
@@ -69,7 +72,7 @@ export default function CategoriesPage() {
           await updateCategory.mutateAsync({ id: editId, name: trimmed });
           toast.success("Category updated");
         } else {
-          await createCategory.mutateAsync(trimmed);
+          await createCategory.mutateAsync({ name: trimmed, type: categoryType });
           toast.success("Category created");
         }
       } else if (dialogMode === "subcategory" && parentCategoryId) {
@@ -94,7 +97,7 @@ export default function CategoriesPage() {
     if (subs.length > 0 || expCount > 0) {
       const parts = [];
       if (subs.length > 0) parts.push(`${subs.length} subcategor${subs.length === 1 ? "y" : "ies"}`);
-      if (expCount > 0) parts.push(`${expCount} expense${expCount === 1 ? "" : "s"}`);
+      if (expCount > 0) parts.push(`${expCount} transaction${expCount === 1 ? "" : "s"}`);
       warning = `This category has ${parts.join(" and ")} attached. They will also be affected.`;
     }
     setDeleteTarget({ type: "category", id: cat.id, name: cat.name, warning });
@@ -111,17 +114,65 @@ export default function CategoriesPage() {
         toast.success("Subcategory deleted");
       }
     } catch {
-      toast.error("Failed to delete. It may have expenses attached.");
+      toast.error("Failed to delete. It may have transactions attached.");
     }
     setDeleteTarget(null);
   };
 
+  const incomeCategories = getCategoriesByType("income");
+  const expenseCategories = getCategoriesByType("expense");
+
+  const renderCategoryList = (cats: typeof categories) => (
+    <div className="space-y-2">
+      {cats.map((cat) => {
+        const subs = getSubcategoriesForCategory(cat.id);
+        const isExpanded = expandedIds.has(cat.id);
+        return (
+          <div key={cat.id} className="glass-card overflow-hidden animate-fade-in">
+            <div className="flex items-center gap-2 p-3">
+              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => toggleExpand(cat.id)}>
+                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </Button>
+              <span className="flex-1 font-medium text-sm">{cat.name}</span>
+              <span className="text-xs text-muted-foreground mr-2">{subs.length} sub</span>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openCategoryDialog({ ...cat, type: (cat as any).type })}>
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => confirmDeleteCategory(cat)}>
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+            {isExpanded && (
+              <div className="border-t border-border px-3 pb-3 pt-2 space-y-1">
+                {subs.map((sub) => (
+                  <div key={sub.id} className="flex items-center gap-2 py-1.5 pl-9">
+                    <span className="flex-1 text-sm text-muted-foreground">{sub.name}</span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openSubcategoryDialog(cat.id, sub)}>
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDeleteTarget({ type: "subcategory", id: sub.id, name: sub.name })}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+                <Button variant="ghost" size="sm" className="ml-9 mt-1 h-7 text-xs text-muted-foreground" onClick={() => openSubcategoryDialog(cat.id)}>
+                  <Plus className="h-3 w-3 mr-1" />
+                  Add subcategory
+                </Button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
+    <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold">Categories</h1>
-          <p className="text-sm text-muted-foreground">Organize your expenses</p>
+          <p className="text-sm text-muted-foreground">Organize your transactions</p>
         </div>
         <Button onClick={() => openCategoryDialog()} size="sm" className="gap-1.5">
           <Plus className="h-4 w-4" />
@@ -134,62 +185,22 @@ export default function CategoriesPage() {
           <p className="text-sm">No categories yet. Create your first one!</p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {categories.map((cat) => {
-            const subs = getSubcategoriesForCategory(cat.id);
-            const isExpanded = expandedIds.has(cat.id);
-            return (
-              <div key={cat.id} className="glass-card overflow-hidden animate-fade-in">
-                <div className="flex items-center gap-2 p-3">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 shrink-0"
-                    onClick={() => toggleExpand(cat.id)}
-                  >
-                    {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  </Button>
-                  <span className="flex-1 font-medium text-sm">{cat.name}</span>
-                  <span className="text-xs text-muted-foreground mr-2">{subs.length} sub</span>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openCategoryDialog(cat)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => confirmDeleteCategory(cat)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-                {isExpanded && (
-                  <div className="border-t border-border px-3 pb-3 pt-2 space-y-1">
-                    {subs.map((sub) => (
-                      <div key={sub.id} className="flex items-center gap-2 py-1.5 pl-9">
-                        <span className="flex-1 text-sm text-muted-foreground">{sub.name}</span>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openSubcategoryDialog(cat.id, sub)}>
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-destructive"
-                          onClick={() => setDeleteTarget({ type: "subcategory", id: sub.id, name: sub.name })}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="ml-9 mt-1 h-7 text-xs text-muted-foreground"
-                      onClick={() => openSubcategoryDialog(cat.id)}
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      Add subcategory
-                    </Button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+        <div className="space-y-6">
+          {/* Expense Categories */}
+          <div className="space-y-2">
+            <h2 className="text-sm font-semibold text-red-400 uppercase tracking-wider">Expense Categories</h2>
+            {expenseCategories.length === 0 ? (
+              <p className="text-sm text-muted-foreground pl-1">No expense categories yet.</p>
+            ) : renderCategoryList(expenseCategories)}
+          </div>
+
+          {/* Income Categories */}
+          <div className="space-y-2">
+            <h2 className="text-sm font-semibold text-emerald-500 uppercase tracking-wider">Income Categories</h2>
+            {incomeCategories.length === 0 ? (
+              <p className="text-sm text-muted-foreground pl-1">No income categories yet.</p>
+            ) : renderCategoryList(incomeCategories)}
+          </div>
         </div>
       )}
 
@@ -202,6 +213,35 @@ export default function CategoriesPage() {
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Type toggle — only for new categories */}
+            {dialogMode === "category" && !editId && (
+              <div className="flex rounded-lg border border-border overflow-hidden">
+                <button
+                  type="button"
+                  className={cn(
+                    "flex-1 py-2.5 text-sm font-medium transition-colors",
+                    categoryType === "expense"
+                      ? "bg-red-500/15 text-red-400 border-r border-border"
+                      : "text-muted-foreground hover:text-foreground border-r border-border"
+                  )}
+                  onClick={() => setCategoryType("expense")}
+                >
+                  Expense
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    "flex-1 py-2.5 text-sm font-medium transition-colors",
+                    categoryType === "income"
+                      ? "bg-emerald-500/15 text-emerald-500"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  onClick={() => setCategoryType("income")}
+                >
+                  Income
+                </button>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="cat-name">Name</Label>
               <Input

@@ -37,10 +37,10 @@ export function useCategories() {
   });
 
   const createCategory = useMutation({
-    mutationFn: async (name: string) => {
+    mutationFn: async ({ name, type }: { name: string; type: "income" | "expense" }) => {
       const { data, error } = await supabase
         .from("categories")
-        .insert({ name, user_id: user!.id })
+        .insert({ name, type, user_id: user!.id })
         .select()
         .single();
       if (error) throw error;
@@ -104,6 +104,9 @@ export function useCategories() {
   const getSubcategoriesForCategory = (categoryId: string) =>
     subcategoriesQuery.data?.filter((s) => s.category_id === categoryId) ?? [];
 
+  const getCategoriesByType = (type: "income" | "expense") =>
+    categoriesQuery.data?.filter((c) => (c as any).type === type) ?? [];
+
   const getCategoryExpenseCount = async (categoryId: string) => {
     const { count } = await supabase
       .from("expenses")
@@ -117,6 +120,7 @@ export function useCategories() {
     subcategories: subcategoriesQuery.data ?? [],
     isLoading: categoriesQuery.isLoading || subcategoriesQuery.isLoading,
     getSubcategoriesForCategory,
+    getCategoriesByType,
     getCategoryExpenseCount,
     createCategory,
     updateCategory,
