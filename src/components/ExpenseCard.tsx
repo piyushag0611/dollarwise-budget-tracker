@@ -25,11 +25,8 @@ export function ExpenseCard({ expense, category, subcategory, onEdit, onDelete }
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <span className={cn(
-              "text-lg font-semibold font-display",
-              isIncome ? "text-emerald-500" : "text-red-400"
-            )}>
-              {isIncome ? "+" : "-"}${Number(expense.amount).toFixed(2)}
+            <span className="text-lg font-semibold font-display text-foreground">
+              ${Number(expense.amount).toFixed(2)}
             </span>
             <Badge variant={isIncome ? "secondary" : "destructive"} className={cn(
               "text-[10px] px-1.5 py-0",
