@@ -4,7 +4,7 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
 const tabs = [
-  { label: "Expenses", path: "/", icon: Receipt },
+  { label: "Transactions", path: "/", icon: Receipt },
   { label: "Categories", path: "/categories", icon: Tags },
 ];
 
