@@ -32,7 +32,7 @@ interface ExpenseFormProps {
 }
 
 export function ExpenseForm({ open, onOpenChange, onSubmit, editingExpense, isSubmitting }: ExpenseFormProps) {
-  const { categories, getSubcategoriesForCategory } = useCategories();
+  const { getCategoriesByType, getSubcategoriesForCategory } = useCategories();
   const [type, setType] = useState<TransactionType>("expense");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -41,6 +41,7 @@ export function ExpenseForm({ open, onOpenChange, onSubmit, editingExpense, isSu
   const [description, setDescription] = useState("");
   const [isRecurring, setIsRecurring] = useState(false);
 
+  const filteredCategories = getCategoriesByType(type);
   const subcategories = categoryId ? getSubcategoriesForCategory(categoryId) : [];
 
   useEffect(() => {
@@ -100,7 +101,7 @@ export function ExpenseForm({ open, onOpenChange, onSubmit, editingExpense, isSu
                   ? "bg-red-500/15 text-red-400 border-r border-border"
                   : "text-muted-foreground hover:text-foreground border-r border-border"
               )}
-              onClick={() => setType("expense")}
+              onClick={() => { setType("expense"); setCategoryId(""); setSubcategoryId(""); }}
             >
               Expense
             </button>
@@ -112,7 +113,7 @@ export function ExpenseForm({ open, onOpenChange, onSubmit, editingExpense, isSu
                   ? "bg-emerald-500/15 text-emerald-500"
                   : "text-muted-foreground hover:text-foreground"
               )}
-              onClick={() => setType("income")}
+              onClick={() => { setType("income"); setCategoryId(""); setSubcategoryId(""); }}
             >
               Income
             </button>
@@ -150,7 +151,7 @@ export function ExpenseForm({ open, onOpenChange, onSubmit, editingExpense, isSu
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((c) => (
+                {filteredCategories.map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                 ))}
               </SelectContent>
