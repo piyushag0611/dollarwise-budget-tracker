@@ -42,7 +42,9 @@ export function useExpenses(filters?: ExpenseFilters) {
       if (filters?.dateTo) query = query.lte("date", filters.dateTo);
       if (filters?.categoryId) query = query.eq("category_id", filters.categoryId);
       if (filters?.subcategoryId) query = query.eq("subcategory_id", filters.subcategoryId);
-      if (filters?.type) query = query.eq("type" as any, filters.type);
+      if (filters?.type) {
+        query = query.filter("type", "eq", filters.type);
+      }
 
       const { data, error } = await query;
       if (error) throw error;
