@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { ExpenseCard } from "@/components/ExpenseCard";
 import { ExpenseFilters } from "@/components/ExpenseFilters";
@@ -20,6 +21,7 @@ import {
 
 export default function ExpensesPage() {
   const [filters, setFilters] = useState<Filters>({});
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
