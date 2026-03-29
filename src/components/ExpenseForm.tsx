@@ -18,9 +18,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useCategories } from "@/hooks/useCategories";
-import type { CreateExpenseInput } from "@/hooks/useExpenses";
+import type { CreateExpenseInput, TransactionType } from "@/hooks/useExpenses";
 import type { Expense } from "@/hooks/useExpenses";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface ExpenseFormProps {
   open: boolean;
@@ -32,6 +33,7 @@ interface ExpenseFormProps {
 
 export function ExpenseForm({ open, onOpenChange, onSubmit, editingExpense, isSubmitting }: ExpenseFormProps) {
   const { categories, getSubcategoriesForCategory } = useCategories();
+  const [type, setType] = useState<TransactionType>("expense");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [categoryId, setCategoryId] = useState("");
@@ -43,6 +45,7 @@ export function ExpenseForm({ open, onOpenChange, onSubmit, editingExpense, isSu
 
   useEffect(() => {
     if (editingExpense) {
+      setType((editingExpense.type as TransactionType) ?? "expense");
       setAmount(String(editingExpense.amount));
       setDate(editingExpense.date);
       setCategoryId(editingExpense.category_id);
@@ -50,6 +53,7 @@ export function ExpenseForm({ open, onOpenChange, onSubmit, editingExpense, isSu
       setDescription(editingExpense.description ?? "");
       setIsRecurring(editingExpense.is_recurring);
     } else {
+      setType("expense");
       setAmount("");
       setDate(format(new Date(), "yyyy-MM-dd"));
       setCategoryId("");
@@ -71,18 +75,49 @@ export function ExpenseForm({ open, onOpenChange, onSubmit, editingExpense, isSu
       subcategory_id: subcategoryId || null,
       description: description.trim() || null,
       is_recurring: isRecurring,
+      type,
     });
   };
+
+  const isIncome = type === "income";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-display">
-            {editingExpense ? "Edit Expense" : "Add Expense"}
+            {editingExpense ? "Edit Transaction" : "Add Transaction"}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Type toggle */}
+          <div className="flex rounded-lg border border-border overflow-hidden">
+            <button
+              type="button"
+              className={cn(
+                "flex-1 py-2.5 text-sm font-medium transition-colors",
+                !isIncome
+                  ? "bg-red-500/15 text-red-400 border-r border-border"
+                  : "text-muted-foreground hover:text-foreground border-r border-border"
+              )}
+              onClick={() => setType("expense")}
+            >
+              Expense
+            </button>
+            <button
+              type="button"
+              className={cn(
+                "flex-1 py-2.5 text-sm font-medium transition-colors",
+                isIncome
+                  ? "bg-emerald-500/15 text-emerald-500"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              onClick={() => setType("income")}
+            >
+              Income
+            </button>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="amount">Amount (CAD)</Label>
             <Input
@@ -151,12 +186,12 @@ export function ExpenseForm({ open, onOpenChange, onSubmit, editingExpense, isSu
           </div>
 
           <div className="flex items-center justify-between rounded-lg border border-border p-3">
-            <Label htmlFor="recurring" className="cursor-pointer text-sm">Recurring expense</Label>
+            <Label htmlFor="recurring" className="cursor-pointer text-sm">Recurring transaction</Label>
             <Switch id="recurring" checked={isRecurring} onCheckedChange={setIsRecurring} />
           </div>
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : editingExpense ? "Update Expense" : "Add Expense"}
+            {isSubmitting ? "Saving..." : editingExpense ? "Update Transaction" : "Add Transaction"}
           </Button>
         </form>
       </DialogContent>

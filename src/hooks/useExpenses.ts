@@ -3,13 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
 
-export type Expense = Tables<"expenses">;
+export type Expense = Tables<"expenses"> & { type: string };
+
+export type TransactionType = "income" | "expense";
 
 export interface ExpenseFilters {
   dateFrom?: string;
   dateTo?: string;
   categoryId?: string;
   subcategoryId?: string;
+  type?: TransactionType;
 }
 
 export interface CreateExpenseInput {
@@ -19,6 +22,7 @@ export interface CreateExpenseInput {
   subcategory_id?: string | null;
   description?: string | null;
   is_recurring?: boolean;
+  type?: TransactionType;
 }
 
 export function useExpenses(filters?: ExpenseFilters) {
@@ -38,6 +42,7 @@ export function useExpenses(filters?: ExpenseFilters) {
       if (filters?.dateTo) query = query.lte("date", filters.dateTo);
       if (filters?.categoryId) query = query.eq("category_id", filters.categoryId);
       if (filters?.subcategoryId) query = query.eq("subcategory_id", filters.subcategoryId);
+      if (filters?.type) query = query.eq("type" as any, filters.type);
 
       const { data, error } = await query;
       if (error) throw error;
@@ -50,7 +55,7 @@ export function useExpenses(filters?: ExpenseFilters) {
     mutationFn: async (input: CreateExpenseInput) => {
       const { data, error } = await supabase
         .from("expenses")
-        .insert({ ...input, user_id: user!.id })
+        .insert({ ...input, user_id: user!.id } as any)
         .select()
         .single();
       if (error) throw error;
@@ -61,7 +66,7 @@ export function useExpenses(filters?: ExpenseFilters) {
 
   const updateExpense = useMutation({
     mutationFn: async ({ id, ...input }: CreateExpenseInput & { id: string }) => {
-      const { error } = await supabase.from("expenses").update(input).eq("id", id);
+      const { error } = await supabase.from("expenses").update(input as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["expenses"] }),
@@ -75,12 +80,17 @@ export function useExpenses(filters?: ExpenseFilters) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["expenses"] }),
   });
 
-  const total = expensesQuery.data?.reduce((sum, e) => sum + Number(e.amount), 0) ?? 0;
+  const expenses = expensesQuery.data ?? [];
+  const totalIncome = expenses.filter(e => e.type === "income").reduce((sum, e) => sum + Number(e.amount), 0);
+  const totalExpenses = expenses.filter(e => e.type === "expense").reduce((sum, e) => sum + Number(e.amount), 0);
+  const net = totalIncome - totalExpenses;
 
   return {
-    expenses: expensesQuery.data ?? [],
+    expenses,
     isLoading: expensesQuery.isLoading,
-    total,
+    totalIncome,
+    totalExpenses,
+    net,
     createExpense,
     updateExpense,
     deleteExpense,

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, SlidersHorizontal } from "lucide-react";
+import { Plus, SlidersHorizontal, TrendingUp, TrendingDown, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { ExpenseForm } from "@/components/ExpenseForm";
@@ -8,6 +8,7 @@ import { ExpenseFilters } from "@/components/ExpenseFilters";
 import { useExpenses, type ExpenseFilters as Filters, type Expense } from "@/hooks/useExpenses";
 import { useCategories } from "@/hooks/useCategories";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,14 +27,14 @@ export default function ExpensesPage() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const { expenses, total, isLoading, createExpense, updateExpense, deleteExpense } = useExpenses(filters);
+  const { expenses, totalIncome, totalExpenses, net, isLoading, createExpense, updateExpense, deleteExpense } = useExpenses(filters);
   const { categories, subcategories } = useCategories();
 
-  const activeFilterCount = [filters.dateFrom, filters.dateTo, filters.categoryId, filters.subcategoryId].filter(Boolean).length;
+  const activeFilterCount = [filters.dateFrom, filters.dateTo, filters.categoryId, filters.subcategoryId, filters.type].filter(Boolean).length;
 
   const handleClearFilters = (newFilters: Filters) => {
     setFilters(newFilters);
-    if (!newFilters.dateFrom && !newFilters.dateTo && !newFilters.categoryId && !newFilters.subcategoryId) {
+    if (!newFilters.dateFrom && !newFilters.dateTo && !newFilters.categoryId && !newFilters.subcategoryId && !newFilters.type) {
       setFiltersOpen(false);
     }
   };
@@ -42,10 +43,10 @@ export default function ExpensesPage() {
     try {
       if (editingExpense) {
         await updateExpense.mutateAsync({ ...data, id: editingExpense.id });
-        toast.success("Expense updated");
+        toast.success("Transaction updated");
       } else {
         await createExpense.mutateAsync(data);
-        toast.success("Expense added");
+        toast.success("Transaction added");
       }
       setFormOpen(false);
       setEditingExpense(null);
@@ -58,7 +59,7 @@ export default function ExpensesPage() {
     if (!deleteId) return;
     try {
       await deleteExpense.mutateAsync(deleteId);
-      toast.success("Expense deleted");
+      toast.success("Transaction deleted");
     } catch {
       toast.error("Failed to delete");
     }
@@ -69,8 +70,8 @@ export default function ExpensesPage() {
     <div className="mx-auto max-w-3xl space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold">Expenses</h1>
-          <p className="text-sm text-muted-foreground">Track where your money goes</p>
+          <h1 className="font-display text-2xl font-bold">Transactions</h1>
+          <p className="text-sm text-muted-foreground">Track your income and expenses</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -89,7 +90,7 @@ export default function ExpensesPage() {
           </Button>
           <Button onClick={() => { setEditingExpense(null); setFormOpen(true); }} size="sm" className="gap-1.5">
             <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Add Expense</span>
+            <span className="hidden sm:inline">Add Transaction</span>
           </Button>
         </div>
       </div>
@@ -100,13 +101,38 @@ export default function ExpensesPage() {
         </CollapsibleContent>
       </Collapsible>
 
-      <div className="glass-card px-4 py-3 flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">
-          {expenses.length} expense{expenses.length !== 1 ? "s" : ""}
-        </span>
-        <span className="font-display font-bold text-lg text-primary">
-          ${total.toFixed(2)} CAD
-        </span>
+      {/* Summary cards */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="glass-card px-4 py-3 space-y-1">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+            Income
+          </div>
+          <p className="font-display font-bold text-lg text-emerald-500">
+            ${totalIncome.toFixed(2)}
+          </p>
+        </div>
+        <div className="glass-card px-4 py-3 space-y-1">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <TrendingDown className="h-3.5 w-3.5 text-red-400" />
+            Expenses
+          </div>
+          <p className="font-display font-bold text-lg text-red-400">
+            ${totalExpenses.toFixed(2)}
+          </p>
+        </div>
+        <div className="glass-card px-4 py-3 space-y-1">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <ArrowUpDown className="h-3.5 w-3.5" />
+            Net
+          </div>
+          <p className={cn(
+            "font-display font-bold text-lg",
+            net >= 0 ? "text-emerald-500" : "text-red-400"
+          )}>
+            {net >= 0 ? "+" : "-"}${Math.abs(net).toFixed(2)}
+          </p>
+        </div>
       </div>
 
       {isLoading ? (
@@ -117,7 +143,7 @@ export default function ExpensesPage() {
         </div>
       ) : expenses.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          <p className="text-sm">No expenses yet. Add your first one!</p>
+          <p className="text-sm">No transactions yet. Add your first one!</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -145,7 +171,7 @@ export default function ExpensesPage() {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete expense?</AlertDialogTitle>
+            <AlertDialogTitle>Delete transaction?</AlertDialogTitle>
             <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

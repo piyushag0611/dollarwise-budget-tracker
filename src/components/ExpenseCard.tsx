@@ -1,8 +1,10 @@
 import { Pencil, Trash2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import type { Expense } from "@/hooks/useExpenses";
 import type { Category, Subcategory } from "@/hooks/useCategories";
 import { format, parseISO } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface ExpenseCardProps {
   expense: Expense;
@@ -13,14 +15,28 @@ interface ExpenseCardProps {
 }
 
 export function ExpenseCard({ expense, category, subcategory, onEdit, onDelete }: ExpenseCardProps) {
+  const isIncome = expense.type === "income";
+
   return (
-    <div className="glass-card p-4 animate-fade-in">
+    <div className={cn(
+      "glass-card p-4 animate-fade-in border-l-4",
+      isIncome ? "border-l-emerald-500" : "border-l-red-400"
+    )}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-lg font-semibold font-display">
-              ${Number(expense.amount).toFixed(2)}
+            <span className={cn(
+              "text-lg font-semibold font-display",
+              isIncome ? "text-emerald-500" : "text-red-400"
+            )}>
+              {isIncome ? "+" : "-"}${Number(expense.amount).toFixed(2)}
             </span>
+            <Badge variant={isIncome ? "secondary" : "destructive"} className={cn(
+              "text-[10px] px-1.5 py-0",
+              isIncome && "bg-emerald-500/15 text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/20"
+            )}>
+              {isIncome ? "Income" : "Expense"}
+            </Badge>
             {expense.is_recurring && (
               <RefreshCw className="h-3.5 w-3.5 text-primary" />
             )}
