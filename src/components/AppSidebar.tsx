@@ -1,4 +1,5 @@
 import { DollarSign, Receipt, Tags, LogOut } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -65,6 +66,7 @@ export function AppSidebar() {
             {user.email}
           </p>
         )}
+        <ThemeToggle collapsed={collapsed} />
         <Button
           variant="ghost"
           size={collapsed ? "icon" : "sm"}
