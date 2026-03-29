@@ -30,11 +30,11 @@ export default function ExpensesPage() {
   const { expenses, totalIncome, totalExpenses, net, isLoading, createExpense, updateExpense, deleteExpense } = useExpenses(filters);
   const { categories, subcategories } = useCategories();
 
-  const activeFilterCount = [filters.dateFrom, filters.dateTo, filters.categoryId, filters.subcategoryId, filters.type].filter(Boolean).length;
+  const activeFilterCount = [filters.dateFrom, filters.dateTo, filters.expenseCategoryId, filters.expenseSubcategoryId, filters.incomeCategoryId, filters.incomeSubcategoryId, filters.type].filter(Boolean).length;
 
   const handleClearFilters = (newFilters: Filters) => {
     setFilters(newFilters);
-    if (!newFilters.dateFrom && !newFilters.dateTo && !newFilters.categoryId && !newFilters.subcategoryId && !newFilters.type) {
+    if (!newFilters.dateFrom && !newFilters.dateTo && !newFilters.expenseCategoryId && !newFilters.expenseSubcategoryId && !newFilters.incomeCategoryId && !newFilters.incomeSubcategoryId && !newFilters.type) {
       setFiltersOpen(false);
     }
   };

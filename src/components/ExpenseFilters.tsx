@@ -18,12 +18,17 @@ interface ExpenseFiltersProps {
 }
 
 export function ExpenseFilters({ filters, onChange }: ExpenseFiltersProps) {
-  const { categories, getSubcategoriesForCategory } = useCategories();
-  const subcategories = filters.categoryId ? getSubcategoriesForCategory(filters.categoryId) : [];
-  const hasFilters = filters.dateFrom || filters.dateTo || filters.categoryId || filters.subcategoryId || filters.type;
+  const { getCategoriesByType, getSubcategoriesForCategory } = useCategories();
+
+  const expenseCategories = getCategoriesByType("expense");
+  const incomeCategories = getCategoriesByType("income");
+  const expenseSubcategories = filters.expenseCategoryId ? getSubcategoriesForCategory(filters.expenseCategoryId) : [];
+  const incomeSubcategories = filters.incomeCategoryId ? getSubcategoriesForCategory(filters.incomeCategoryId) : [];
+
+  const hasFilters = filters.dateFrom || filters.dateTo || filters.expenseCategoryId || filters.expenseSubcategoryId || filters.incomeCategoryId || filters.incomeSubcategoryId || filters.type;
 
   return (
-    <div className="glass-card p-4 space-y-3">
+    <div className="glass-card p-4 space-y-4">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">Filters</span>
         {hasFilters && (
@@ -38,7 +43,9 @@ export function ExpenseFilters({ filters, onChange }: ExpenseFiltersProps) {
           </Button>
         )}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+
+      {/* Shared filters */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">Type</Label>
           <Select
@@ -73,42 +80,92 @@ export function ExpenseFilters({ filters, onChange }: ExpenseFiltersProps) {
             className="h-9"
           />
         </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Category</Label>
-          <Select
-            value={filters.categoryId ?? "all"}
-            onValueChange={(v) => onChange({ ...filters, categoryId: v === "all" ? undefined : v, subcategoryId: undefined })}
-          >
-            <SelectTrigger className="h-9">
-              <SelectValue placeholder="All" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All categories</SelectItem>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        {subcategories.length > 0 && (
+      </div>
+
+      {/* Expense category filters */}
+      <div className="space-y-2">
+        <span className="text-xs font-medium text-red-400">Expense Category</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Subcategory</Label>
+            <Label className="text-xs text-muted-foreground">Category</Label>
             <Select
-              value={filters.subcategoryId ?? "all"}
-              onValueChange={(v) => onChange({ ...filters, subcategoryId: v === "all" ? undefined : v })}
+              value={filters.expenseCategoryId ?? "all"}
+              onValueChange={(v) => onChange({ ...filters, expenseCategoryId: v === "all" ? undefined : v, expenseSubcategoryId: undefined })}
             >
               <SelectTrigger className="h-9">
                 <SelectValue placeholder="All" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All subcategories</SelectItem>
-                {subcategories.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                <SelectItem value="all">All expense categories</SelectItem>
+                {expenseCategories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-        )}
+          {expenseSubcategories.length > 0 && (
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Subcategory</Label>
+              <Select
+                value={filters.expenseSubcategoryId ?? "all"}
+                onValueChange={(v) => onChange({ ...filters, expenseSubcategoryId: v === "all" ? undefined : v })}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All subcategories</SelectItem>
+                  {expenseSubcategories.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Income category filters */}
+      <div className="space-y-2">
+        <span className="text-xs font-medium text-emerald-500">Income Category</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Category</Label>
+            <Select
+              value={filters.incomeCategoryId ?? "all"}
+              onValueChange={(v) => onChange({ ...filters, incomeCategoryId: v === "all" ? undefined : v, incomeSubcategoryId: undefined })}
+            >
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="All" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All income categories</SelectItem>
+                {incomeCategories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {incomeSubcategories.length > 0 && (
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Subcategory</Label>
+              <Select
+                value={filters.incomeSubcategoryId ?? "all"}
+                onValueChange={(v) => onChange({ ...filters, incomeSubcategoryId: v === "all" ? undefined : v })}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All subcategories</SelectItem>
+                  {incomeSubcategories.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
