@@ -68,19 +68,16 @@ export default function ExpensesPage() {
     });
   }, [monthGroups]);
 
-  // Compute totals from only expanded months
+  // Compute totals from ALL transactions (not scoped to expanded months)
   const { totalIncome, totalExpenses, net } = useMemo(() => {
     let income = 0;
     let expense = 0;
-    for (const group of monthGroups) {
-      if (!effectiveExpanded.has(group.key)) continue;
-      for (const e of group.expenses) {
-        if (e.type === "income") income += Number(e.amount);
-        else expense += Number(e.amount);
-      }
+    for (const e of expenses) {
+      if (e.type === "income") income += Number(e.amount);
+      else expense += Number(e.amount);
     }
     return { totalIncome: income, totalExpenses: expense, net: income - expense };
-  }, [monthGroups, effectiveExpanded]);
+  }, [expenses]);
 
   const handleClearFilters = (newFilters: Filters) => {
     setFilters(newFilters);
