@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Plus, SlidersHorizontal, TrendingUp, TrendingDown, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { ExpenseForm } from "@/components/ExpenseForm";
-import { ExpenseCard } from "@/components/ExpenseCard";
+import { MonthGroup } from "@/components/MonthGroup";
 import { ExpenseFilters } from "@/components/ExpenseFilters";
 import { useExpenses, type ExpenseFilters as Filters, type Expense } from "@/hooks/useExpenses";
 import { useCategories } from "@/hooks/useCategories";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { format, parseISO } from "date-fns";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,17 +21,66 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+function groupByMonth(expenses: Expense[]): { key: string; label: string; expenses: Expense[] }[] {
+  const map = new Map<string, Expense[]>();
+  for (const e of expenses) {
+    const d = parseISO(e.date);
+    const key = format(d, "yyyy-MM");
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(e);
+  }
+  return Array.from(map.entries())
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([key, exps]) => {
+      const d = parseISO(key + "-01");
+      return { key, label: format(d, "MMMM yyyy"), expenses: exps };
+    });
+}
+
 export default function ExpensesPage() {
   const [filters, setFilters] = useState<Filters>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [expandedMonths, setExpandedMonths] = useState<Set<string> | null>(null);
 
-  const { expenses, totalIncome, totalExpenses, net, isLoading, createExpense, updateExpense, deleteExpense } = useExpenses(filters);
+  const { expenses, isLoading, createExpense, updateExpense, deleteExpense } = useExpenses(filters);
   const { categories, subcategories } = useCategories();
 
   const activeFilterCount = [filters.dateFrom, filters.dateTo, filters.expenseCategoryId, filters.expenseSubcategoryId, filters.incomeCategoryId, filters.incomeSubcategoryId, filters.type].filter(Boolean).length;
+
+  const monthGroups = useMemo(() => groupByMonth(expenses), [expenses]);
+
+  // Initialize expanded state: most recent month expanded, rest collapsed
+  const effectiveExpanded = useMemo(() => {
+    if (expandedMonths !== null) return expandedMonths;
+    if (monthGroups.length === 0) return new Set<string>();
+    return new Set([monthGroups[0].key]);
+  }, [expandedMonths, monthGroups]);
+
+  const toggleMonth = useCallback((key: string, open: boolean) => {
+    setExpandedMonths((prev) => {
+      const base = prev !== null ? new Set(prev) : (monthGroups.length > 0 ? new Set([monthGroups[0].key]) : new Set<string>());
+      if (open) base.add(key);
+      else base.delete(key);
+      return base;
+    });
+  }, [monthGroups]);
+
+  // Compute totals from only expanded months
+  const { totalIncome, totalExpenses, net } = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    for (const group of monthGroups) {
+      if (!effectiveExpanded.has(group.key)) continue;
+      for (const e of group.expenses) {
+        if (e.type === "income") income += Number(e.amount);
+        else expense += Number(e.amount);
+      }
+    }
+    return { totalIncome: income, totalExpenses: expense, net: income - expense };
+  }, [monthGroups, effectiveExpanded]);
 
   const handleClearFilters = (newFilters: Filters) => {
     setFilters(newFilters);
@@ -141,18 +191,21 @@ export default function ExpensesPage() {
             <div key={i} className="glass-card h-20 animate-pulse" />
           ))}
         </div>
-      ) : expenses.length === 0 ? (
+      ) : monthGroups.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <p className="text-sm">No transactions yet. Add your first one!</p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {expenses.map((expense) => (
-            <ExpenseCard
-              key={expense.id}
-              expense={expense}
-              category={categories.find((c) => c.id === expense.category_id)}
-              subcategory={subcategories.find((s) => s.id === expense.subcategory_id)}
+        <div className="space-y-3">
+          {monthGroups.map((group) => (
+            <MonthGroup
+              key={group.key}
+              label={group.label}
+              expenses={group.expenses}
+              categories={categories}
+              subcategories={subcategories}
+              isOpen={effectiveExpanded.has(group.key)}
+              onToggle={(open) => toggleMonth(group.key, open)}
               onEdit={(e) => { setEditingExpense(e); setFormOpen(true); }}
               onDelete={(id) => setDeleteId(id)}
             />
