@@ -35,9 +35,9 @@ export function MonthGroup({
   const net = income - expenseTotal;
 
   return (
-    <Collapsible open={isOpen} onOpenChange={onToggle}>
+    <Collapsible open={isOpen} onOpenChange={onToggle} className="mt-4 first:mt-0">
       <CollapsibleTrigger className="w-full">
-        <div className="glass-card px-4 py-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-accent/50 transition-colors">
+        <div className="relative glass-card px-4 py-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-accent/50 transition-colors border-l-4 border-l-primary rounded-l-sm">
           <div className="flex items-center gap-2">
             <ChevronDown
               className={cn(
@@ -45,7 +45,7 @@ export function MonthGroup({
                 !isOpen && "-rotate-90"
               )}
             />
-            <h2 className="font-display font-semibold text-sm">{label}</h2>
+            <h2 className="font-display font-bold text-sm tracking-wide">{label}</h2>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap justify-end">
             <span>
@@ -77,7 +77,7 @@ export function MonthGroup({
         </div>
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <div className="space-y-2 mt-2">
+        <div className="ml-4 space-y-2 mt-2 pl-3 border-l border-border/50">
           {expenses.map((expense) => (
             <ExpenseCard
               key={expense.id}
