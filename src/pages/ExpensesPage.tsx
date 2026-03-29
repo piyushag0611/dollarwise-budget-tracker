@@ -34,7 +34,7 @@ export default function ExpensesPage() {
 
   const handleClearFilters = (newFilters: Filters) => {
     setFilters(newFilters);
-    if (!newFilters.dateFrom && !newFilters.dateTo && !newFilters.categoryId && !newFilters.subcategoryId && !newFilters.type) {
+    if (!newFilters.dateFrom && !newFilters.dateTo && !newFilters.expenseCategoryId && !newFilters.expenseSubcategoryId && !newFilters.incomeCategoryId && !newFilters.incomeSubcategoryId && !newFilters.type) {
       setFiltersOpen(false);
     }
   };
