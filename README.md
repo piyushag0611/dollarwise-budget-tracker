@@ -1,3 +1,3 @@
-# Welcome to your Lovable project
+# Welcome to DollarWise
 
 TODO: Document your project here
