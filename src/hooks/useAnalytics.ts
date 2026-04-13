@@ -25,7 +25,7 @@ export interface SubcategorySpend {
 
 export type TimeRange = "this_month" | "last_month" | "last_3" | "last_6" | "custom";
 
-function getDateRange(range: TimeRange, customFrom?: string, customTo?: string) {
+export function getDateRange(range: TimeRange, customFrom?: string, customTo?: string) {
   const now = new Date();
   switch (range) {
     case "this_month":

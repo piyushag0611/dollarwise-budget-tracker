@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { useCategories } from "@/hooks/useCategories";
 import type { ExpenseFilters as Filters } from "@/hooks/useExpenses";
+import { validateDateRange } from "@/lib/utils";
 
 interface ExpenseFiltersProps {
   filters: Filters;
@@ -67,7 +68,11 @@ export function ExpenseFilters({ filters, onChange }: ExpenseFiltersProps) {
           <Input
             type="date"
             value={filters.dateFrom ?? ""}
-            onChange={(e) => onChange({ ...filters, dateFrom: e.target.value || undefined })}
+            max={filters.dateTo}
+            onChange={(e) => {
+              const { dateFrom, dateTo } = validateDateRange(e.target.value || undefined, filters.dateTo);
+              onChange({ ...filters, dateFrom, dateTo });
+            }}
             className="h-9"
           />
         </div>
@@ -76,7 +81,12 @@ export function ExpenseFilters({ filters, onChange }: ExpenseFiltersProps) {
           <Input
             type="date"
             value={filters.dateTo ?? ""}
-            onChange={(e) => onChange({ ...filters, dateTo: e.target.value || undefined })}
+            min={filters.dateFrom}
+            onChange={(e) => {
+              const newTo = e.target.value || undefined;
+              const { dateTo } = validateDateRange(filters.dateFrom, newTo);
+              onChange({ ...filters, dateTo });
+            }}
             className="h-9"
           />
         </div>
