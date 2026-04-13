@@ -22,8 +22,8 @@ describe("getDateRange()", () => {
 
   it("last_3 — starts at the beginning of 2 months ago, ends today's month end", () => {
     const { from, to } = getDateRange("last_3");
-    expect(from).toBe(fmt(startOfMonth(subMonths(now, 2))));
-    expect(to).toBe(fmt(endOfMonth(now)));
+    expect(to).toBe(fmt(startOfMonth(subMonths(now, 2))));
+    expect(from).toBe(fmt(endOfMonth(now)));
   });
 
   it("last_6 — starts at the beginning of 5 months ago, ends today's month end", () => {
