@@ -1,8 +1,7 @@
-import { DollarSign, Receipt, Tags, LogOut, BarChart3 } from "lucide-react";
+import { DollarSign, Receipt, Tags, BarChart3 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
   SidebarContent,
@@ -14,7 +13,6 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
 
 const navItems = [
   { title: "Transactions", url: "/", icon: Receipt },
@@ -26,7 +24,6 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { user, signOut } = useAuth();
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
@@ -62,21 +59,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="p-3">
-        {!collapsed && user && (
-          <p className="mb-2 truncate text-xs text-muted-foreground px-2">
-            {user.email}
-          </p>
-        )}
         <ThemeToggle collapsed={collapsed} />
-        <Button
-          variant="ghost"
-          size={collapsed ? "icon" : "sm"}
-          onClick={signOut}
-          className="w-full justify-start text-muted-foreground hover:text-foreground"
-        >
-          <LogOut className="h-4 w-4" />
-          {!collapsed && <span className="ml-2">Sign Out</span>}
-        </Button>
       </SidebarFooter>
     </Sidebar>
   );

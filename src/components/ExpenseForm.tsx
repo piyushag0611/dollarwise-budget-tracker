@@ -18,16 +18,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useCategories } from "@/hooks/useCategories";
-import type { CreateExpenseInput, TransactionType } from "@/hooks/useExpenses";
-import type { Expense } from "@/hooks/useExpenses";
+import type { CreateTransactionInput, TransactionType } from "@/hooks/useTransactions";
+import type { Transaction } from "@/integrations/sqlite/types";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 interface ExpenseFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: CreateExpenseInput) => void;
-  editingExpense?: Expense | null;
+  onSubmit: (data: CreateTransactionInput) => void;
+  editingExpense?: Transaction | null;
   isSubmitting?: boolean;
 }
 
@@ -46,13 +46,13 @@ export function ExpenseForm({ open, onOpenChange, onSubmit, editingExpense, isSu
 
   useEffect(() => {
     if (editingExpense) {
-      setType((editingExpense.type as TransactionType) ?? "expense");
+      setType(editingExpense.type ?? "expense");
       setAmount(String(editingExpense.amount));
       setDate(editingExpense.date);
       setCategoryId(editingExpense.category_id);
       setSubcategoryId(editingExpense.subcategory_id ?? "");
       setDescription(editingExpense.description ?? "");
-      setIsRecurring(editingExpense.is_recurring);
+      setIsRecurring(!!editingExpense.is_recurring);
     } else {
       setType("expense");
       setAmount("");

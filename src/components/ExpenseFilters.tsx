@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { useCategories } from "@/hooks/useCategories";
-import type { ExpenseFilters as Filters } from "@/hooks/useExpenses";
+import type { TransactionFilters as Filters } from "@/hooks/useTransactions";
 import { validateDateRange } from "@/lib/utils";
 
 interface ExpenseFiltersProps {

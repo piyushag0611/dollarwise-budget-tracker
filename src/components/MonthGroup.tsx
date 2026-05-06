@@ -2,17 +2,16 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ExpenseCard } from "./ExpenseCard";
-import type { Expense } from "@/hooks/useExpenses";
-import type { Category, Subcategory } from "@/hooks/useCategories";
+import type { Transaction, Category, Subcategory } from "@/integrations/sqlite/types";
 
 interface MonthGroupProps {
   label: string;
-  expenses: Expense[];
+  expenses: Transaction[];
   categories: Category[];
   subcategories: Subcategory[];
   isOpen: boolean;
   onToggle: (open: boolean) => void;
-  onEdit: (expense: Expense) => void;
+  onEdit: (expense: Transaction) => void;
   onDelete: (id: string) => void;
 }
 

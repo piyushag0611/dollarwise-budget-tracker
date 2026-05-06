@@ -1,12 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { DatabaseProvider } from "@/contexts/DatabaseContext";
+import { getDatabase } from "@/integrations/sqlite/db";
 import { AppLayout } from "@/components/AppLayout";
-import LoginPage from "@/pages/LoginPage";
 import ExpensesPage from "@/pages/ExpensesPage";
 import CategoriesPage from "@/pages/CategoriesPage";
 import AnalyticsPage from "@/pages/AnalyticsPage";
@@ -14,25 +14,11 @@ import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
-      </div>
-    );
-  }
-  if (!user) return <Navigate to="/login" replace />;
-  return <AppLayout>{children}</AppLayout>;
-}
-
 const AppRoutes = () => (
   <Routes>
-    <Route path="/login" element={<LoginPage />} />
-    <Route path="/" element={<ProtectedRoute><ExpensesPage /></ProtectedRoute>} />
-    <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
-    <Route path="/categories" element={<ProtectedRoute><CategoriesPage /></ProtectedRoute>} />
+    <Route path="/" element={<AppLayout><ExpensesPage /></AppLayout>} />
+    <Route path="/analytics" element={<AppLayout><AnalyticsPage /></AppLayout>} />
+    <Route path="/categories" element={<AppLayout><CategoriesPage /></AppLayout>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
@@ -44,9 +30,9 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <AuthProvider>
+          <DatabaseProvider adapterFactory={getDatabase}>
             <AppRoutes />
-          </AuthProvider>
+          </DatabaseProvider>
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
