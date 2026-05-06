@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useDatabase } from "@/contexts/DatabaseContext";
 import { format, subMonths, startOfMonth, endOfMonth, parseISO } from "date-fns";
 
 export interface MonthlyData {
@@ -48,107 +47,88 @@ export function getDateRange(range: TimeRange, customFrom?: string, customTo?: s
 }
 
 export function useNetSavingsTrend() {
-  const { user } = useAuth();
+  const db = useDatabase();
 
   return useQuery({
-    queryKey: ["analytics-trend", user?.id],
+    queryKey: ["analytics-trend"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("expenses")
-        .select("amount, date, type")
-        .order("date", { ascending: true });
-      if (error) throw error;
-      if (!data || data.length === 0) return [] as MonthlyData[];
-
-      const map = new Map<string, { income: number; expenses: number }>();
-      for (const row of data) {
-        const key = row.date.substring(0, 7); // "yyyy-MM"
-        if (!map.has(key)) map.set(key, { income: 0, expenses: 0 });
-        const entry = map.get(key)!;
-        if (row.type === "income") entry.income += Number(row.amount);
-        else entry.expenses += Number(row.amount);
-      }
-
-      return Array.from(map.entries())
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([month, vals]) => ({
-          month,
-          label: format(parseISO(month + "-01"), "MMM yyyy"),
-          income: vals.income,
-          expenses: vals.expenses,
-          net: vals.income - vals.expenses,
-        }));
+      const rows = await db!.query<{ month: string; income: number; expenses: number }>(
+        `SELECT substr(date, 1, 7) as month,
+          SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income,
+          SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as expenses
+        FROM transactions
+        GROUP BY month
+        ORDER BY month ASC`
+      );
+      return rows.map(r => ({
+        month: r.month,
+        label: format(parseISO(r.month + "-01"), "MMM yyyy"),
+        income: r.income,
+        expenses: r.expenses,
+        net: r.income - r.expenses,
+      }));
     },
-    enabled: !!user,
+    enabled: !!db,
   });
 }
 
 export function useTopCategories(range: TimeRange, customFrom?: string, customTo?: string) {
-  const { user } = useAuth();
+  const db = useDatabase();
   const { from, to } = getDateRange(range, customFrom, customTo);
 
   return useQuery({
-    queryKey: ["analytics-top-categories", user?.id, from, to],
+    queryKey: ["analytics-top-categories", from, to],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("expenses")
-        .select("amount, category_id")
-        .eq("type", "expense")
-        .gte("date", from)
-        .lte("date", to);
-      if (error) throw error;
-
-      // Fetch categories
-      const { data: cats, error: catErr } = await supabase.from("categories").select("id, name");
-      if (catErr) throw catErr;
-      const catMap = new Map(cats?.map((c) => [c.id, c.name]) ?? []);
-
-      const totals = new Map<string, number>();
-      for (const row of data ?? []) {
-        totals.set(row.category_id, (totals.get(row.category_id) || 0) + Number(row.amount));
-      }
-
-      return Array.from(totals.entries())
-        .map(([id, total]) => ({ categoryId: id, categoryName: catMap.get(id) || "Unknown", total }))
-        .sort((a, b) => b.total - a.total);
+      const rows = await db!.query<{ category_id: string; category_name: string; total: number }>(
+        `SELECT t.category_id, c.name as category_name, SUM(t.amount) as total
+        FROM transactions t
+        JOIN categories c ON t.category_id = c.id
+        WHERE t.type = 'expense' AND t.date >= ? AND t.date <= ?
+        GROUP BY t.category_id
+        ORDER BY total DESC`,
+        [from, to]
+      );
+      return rows.map(r => ({
+        categoryId: r.category_id,
+        categoryName: r.category_name,
+        total: r.total,
+      }));
     },
-    enabled: !!user,
+    enabled: !!db,
   });
 }
 
 export function useSubcategorySpend(categoryId: string, range: TimeRange, customFrom?: string, customTo?: string) {
-  const { user } = useAuth();
+  const db = useDatabase();
   const { from, to } = getDateRange(range, customFrom, customTo);
 
   return useQuery({
-    queryKey: ["analytics-subcategory-spend", user?.id, categoryId, from, to],
+    queryKey: ["analytics-subcategory-spend", categoryId, from, to],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("expenses")
-        .select("amount, subcategory_id")
-        .eq("type", "expense")
-        .eq("category_id", categoryId)
-        .gte("date", from)
-        .lte("date", to);
-      if (error) throw error;
+      const rows = await db!.query<{ subcategory_id: string | null; subcategory_name: string | null; total: number }>(
+        `SELECT t.subcategory_id, s.name as subcategory_name, SUM(t.amount) as total
+        FROM transactions t
+        LEFT JOIN subcategories s ON t.subcategory_id = s.id
+        WHERE t.type = 'expense' AND t.category_id = ? AND t.date >= ? AND t.date <= ?
+        GROUP BY t.subcategory_id
+        ORDER BY total DESC`,
+        [categoryId, from, to]
+      );
 
-      const { data: subs, error: subErr } = await supabase.from("subcategories").select("id, name").eq("category_id", categoryId);
-      if (subErr) throw subErr;
-      const subMap = new Map(subs?.map((s) => [s.id, s.name]) ?? []);
-
-      const totals = new Map<string, number>();
+      const result: SubcategorySpend[] = [];
       let uncategorized = 0;
-      for (const row of data ?? []) {
-        if (row.subcategory_id) {
-          totals.set(row.subcategory_id, (totals.get(row.subcategory_id) || 0) + Number(row.amount));
+
+      for (const r of rows) {
+        if (r.subcategory_id) {
+          result.push({
+            subcategoryId: r.subcategory_id,
+            subcategoryName: r.subcategory_name || "Unknown",
+            total: r.total,
+          });
         } else {
-          uncategorized += Number(row.amount);
+          uncategorized += r.total;
         }
       }
-
-      const result: SubcategorySpend[] = Array.from(totals.entries())
-        .map(([id, total]) => ({ subcategoryId: id, subcategoryName: subMap.get(id) || "Unknown", total }))
-        .sort((a, b) => b.total - a.total);
 
       if (uncategorized > 0) {
         result.push({ subcategoryId: "__none__", subcategoryName: "Uncategorized", total: uncategorized });
@@ -156,26 +136,23 @@ export function useSubcategorySpend(categoryId: string, range: TimeRange, custom
 
       return result;
     },
-    enabled: !!user && !!categoryId,
+    enabled: !!db && !!categoryId,
   });
 }
 
 export function useTotalIncome(range: TimeRange, customFrom?: string, customTo?: string) {
-  const { user } = useAuth();
+  const db = useDatabase();
   const { from, to } = getDateRange(range, customFrom, customTo);
 
   return useQuery({
-    queryKey: ["analytics-total-income", user?.id, from, to],
+    queryKey: ["analytics-total-income", from, to],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("expenses")
-        .select("amount")
-        .eq("type", "income")
-        .gte("date", from)
-        .lte("date", to);
-      if (error) throw error;
-      return (data ?? []).reduce((s, r) => s + Number(r.amount), 0);
+      const row = await db!.queryOne<{ total: number | null }>(
+        "SELECT SUM(amount) as total FROM transactions WHERE type = 'income' AND date >= ? AND date <= ?",
+        [from, to]
+      );
+      return row?.total ?? 0;
     },
-    enabled: !!user,
+    enabled: !!db,
   });
 }
