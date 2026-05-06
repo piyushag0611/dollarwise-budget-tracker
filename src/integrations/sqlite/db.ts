@@ -18,7 +18,7 @@ export async function getDatabase(): Promise<DatabaseAdapter> {
 
 async function createNativeAdapter(): Promise<DatabaseAdapter> {
   const { CapacitorSQLite, SQLiteConnection } = await import(
-    "@capacitor-community/sqlite"
+    /* @vite-ignore */ "@capacitor-community/sqlite"
   );
   const sqlite = new SQLiteConnection(CapacitorSQLite);
   const db = await sqlite.createConnection("dollarwise", false, "no-encryption", 1, false);
@@ -49,7 +49,7 @@ async function createNativeAdapter(): Promise<DatabaseAdapter> {
 
 async function createWebAdapter(): Promise<DatabaseAdapter> {
   // Dynamically imported so the WASM binary is only loaded on web
-  const { default: sqlite3InitModule } = await import("@sqlite.org/sqlite-wasm");
+  const { default: sqlite3InitModule } = await import(/* @vite-ignore */ "@sqlite.org/sqlite-wasm");
   const sqlite3 = await sqlite3InitModule({ print: () => {}, printErr: () => {} });
 
   // Use OPFS if available (persistent across sessions), fall back to in-memory
