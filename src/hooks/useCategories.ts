@@ -1,118 +1,87 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import type { Tables } from "@/integrations/supabase/types";
-
-export type Category = Tables<"categories">;
-export type Subcategory = Tables<"subcategories">;
+import { useDatabase } from "@/contexts/DatabaseContext";
+import type { Category, Subcategory } from "@/integrations/sqlite/types";
 
 export function useCategories() {
-  const { user } = useAuth();
+  const db = useDatabase();
   const queryClient = useQueryClient();
 
   const categoriesQuery = useQuery({
-    queryKey: ["categories", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("categories")
-        .select("*")
-        .order("name");
-      if (error) throw error;
-      return data as Category[];
-    },
-    enabled: !!user,
+    queryKey: ["categories"],
+    queryFn: () => db!.query<Category>("SELECT * FROM categories ORDER BY name"),
+    enabled: !!db,
   });
 
   const subcategoriesQuery = useQuery({
-    queryKey: ["subcategories", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("subcategories")
-        .select("*")
-        .order("name");
-      if (error) throw error;
-      return data as Subcategory[];
-    },
-    enabled: !!user,
+    queryKey: ["subcategories"],
+    queryFn: () => db!.query<Subcategory>("SELECT * FROM subcategories ORDER BY name"),
+    enabled: !!db,
   });
 
   const createCategory = useMutation({
     mutationFn: async ({ name, type }: { name: string; type: "income" | "expense" }) => {
-      const { data, error } = await supabase
-        .from("categories")
-        .insert({ name, type, user_id: user!.id })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
+      const id = crypto.randomUUID();
+      await db!.execute("INSERT INTO categories (id, name, type) VALUES (?, ?, ?)", [id, name, type]);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["categories"] }),
   });
 
   const updateCategory = useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      const { error } = await supabase.from("categories").update({ name }).eq("id", id);
-      if (error) throw error;
+      await db!.execute("UPDATE categories SET name = ? WHERE id = ?", [name, id]);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["categories"] }),
   });
 
   const deleteCategory = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("categories").delete().eq("id", id);
-      if (error) throw error;
+      await db!.execute("DELETE FROM categories WHERE id = ?", [id]);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       queryClient.invalidateQueries({ queryKey: ["subcategories"] });
-      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
     },
   });
 
   const createSubcategory = useMutation({
     mutationFn: async ({ name, categoryId }: { name: string; categoryId: string }) => {
-      const { data, error } = await supabase
-        .from("subcategories")
-        .insert({ name, category_id: categoryId, user_id: user!.id })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
+      const id = crypto.randomUUID();
+      await db!.execute("INSERT INTO subcategories (id, name, category_id) VALUES (?, ?, ?)", [id, name, categoryId]);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["subcategories"] }),
   });
 
   const updateSubcategory = useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      const { error } = await supabase.from("subcategories").update({ name }).eq("id", id);
-      if (error) throw error;
+      await db!.execute("UPDATE subcategories SET name = ? WHERE id = ?", [name, id]);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["subcategories"] }),
   });
 
   const deleteSubcategory = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("subcategories").delete().eq("id", id);
-      if (error) throw error;
+      await db!.execute("DELETE FROM subcategories WHERE id = ?", [id]);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["subcategories"] });
-      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
     },
   });
 
-  const getSubcategoriesForCategory = (categoryId: string) =>
-    subcategoriesQuery.data?.filter((s) => s.category_id === categoryId) ?? [];
+  const getSubcategoriesForCategory = (categoryId: string): Subcategory[] =>
+    subcategoriesQuery.data?.filter(s => s.category_id === categoryId) ?? [];
 
-  const getCategoriesByType = (type: "income" | "expense") =>
-    categoriesQuery.data?.filter((c) => (c as any).type === type) ?? [];
+  const getCategoriesByType = (type: "income" | "expense"): Category[] =>
+    categoriesQuery.data?.filter(c => c.type === type) ?? [];
 
-  const getCategoryExpenseCount = async (categoryId: string) => {
-    const { count } = await supabase
-      .from("expenses")
-      .select("*", { count: "exact", head: true })
-      .eq("category_id", categoryId);
-    return count ?? 0;
+  const getCategoryTransactionCount = async (categoryId: string): Promise<number> => {
+    if (!db) return 0;
+    const row = await db.queryOne<{ count: number }>(
+      "SELECT COUNT(*) as count FROM transactions WHERE category_id = ?",
+      [categoryId]
+    );
+    return row?.count ?? 0;
   };
 
   return {
@@ -121,7 +90,7 @@ export function useCategories() {
     isLoading: categoriesQuery.isLoading || subcategoriesQuery.isLoading,
     getSubcategoriesForCategory,
     getCategoriesByType,
-    getCategoryExpenseCount,
+    getCategoryTransactionCount,
     createCategory,
     updateCategory,
     deleteCategory,
