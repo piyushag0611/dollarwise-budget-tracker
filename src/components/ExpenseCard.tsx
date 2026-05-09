@@ -1,16 +1,15 @@
 import { Pencil, Trash2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { Expense } from "@/hooks/useExpenses";
-import type { Category, Subcategory } from "@/hooks/useCategories";
+import type { Transaction, Category, Subcategory } from "@/integrations/sqlite/types";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 
 interface ExpenseCardProps {
-  expense: Expense;
+  expense: Transaction;
   category?: Category;
   subcategory?: Subcategory;
-  onEdit: (expense: Expense) => void;
+  onEdit: (expense: Transaction) => void;
   onDelete: (id: string) => void;
 }
 

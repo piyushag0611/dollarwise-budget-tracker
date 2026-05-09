@@ -5,7 +5,8 @@ import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { MonthGroup } from "@/components/MonthGroup";
 import { ExpenseFilters } from "@/components/ExpenseFilters";
-import { useExpenses, type ExpenseFilters as Filters, type Expense } from "@/hooks/useExpenses";
+import { useTransactions, type TransactionFilters as Filters } from "@/hooks/useTransactions";
+import type { Transaction } from "@/integrations/sqlite/types";
 import { useCategories } from "@/hooks/useCategories";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -21,7 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-function groupByMonth(expenses: Expense[]): { key: string; label: string; expenses: Expense[] }[] {
+function groupByMonth(expenses: Transaction[]): { key: string; label: string; expenses: Transaction[] }[] {
   const map = new Map<string, Expense[]>();
   for (const e of expenses) {
     const d = parseISO(e.date);
@@ -41,16 +42,16 @@ export default function ExpensesPage() {
   const [filters, setFilters] = useState<Filters>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
-  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [editingExpense, setEditingExpense] = useState<Transaction | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [expandedMonths, setExpandedMonths] = useState<Set<string> | null>(null);
 
-  const { expenses, isLoading, createExpense, updateExpense, deleteExpense } = useExpenses(filters);
+  const { transactions, isLoading, totalIncome, totalExpenses, net, createTransaction, updateTransaction, deleteTransaction } = useTransactions(filters);
   const { categories, subcategories } = useCategories();
 
   const activeFilterCount = [filters.dateFrom, filters.dateTo, filters.expenseCategoryId, filters.expenseSubcategoryId, filters.incomeCategoryId, filters.incomeSubcategoryId, filters.type].filter(Boolean).length;
 
-  const monthGroups = useMemo(() => groupByMonth(expenses), [expenses]);
+  const monthGroups = useMemo(() => groupByMonth(transactions), [transactions]);
 
   // Initialize expanded state: most recent month expanded, rest collapsed
   const effectiveExpanded = useMemo(() => {
@@ -68,17 +69,6 @@ export default function ExpensesPage() {
     });
   }, [monthGroups]);
 
-  // Compute totals from ALL transactions (not scoped to expanded months)
-  const { totalIncome, totalExpenses, net } = useMemo(() => {
-    let income = 0;
-    let expense = 0;
-    for (const e of expenses) {
-      if (e.type === "income") income += Number(e.amount);
-      else expense += Number(e.amount);
-    }
-    return { totalIncome: income, totalExpenses: expense, net: income - expense };
-  }, [expenses]);
-
   const handleClearFilters = (newFilters: Filters) => {
     setFilters(newFilters);
     if (!newFilters.dateFrom && !newFilters.dateTo && !newFilters.expenseCategoryId && !newFilters.expenseSubcategoryId && !newFilters.incomeCategoryId && !newFilters.incomeSubcategoryId && !newFilters.type) {
@@ -86,13 +76,13 @@ export default function ExpensesPage() {
     }
   };
 
-  const handleSubmit = async (data: Parameters<typeof createExpense.mutateAsync>[0]) => {
+  const handleSubmit = async (data: Parameters<typeof createTransaction.mutateAsync>[0]) => {
     try {
       if (editingExpense) {
-        await updateExpense.mutateAsync({ ...data, id: editingExpense.id });
+        await updateTransaction.mutateAsync({ ...data, id: editingExpense.id });
         toast.success("Transaction updated");
       } else {
-        await createExpense.mutateAsync(data);
+        await createTransaction.mutateAsync(data);
         toast.success("Transaction added");
       }
       setFormOpen(false);
@@ -105,7 +95,7 @@ export default function ExpensesPage() {
   const handleDelete = async () => {
     if (!deleteId) return;
     try {
-      await deleteExpense.mutateAsync(deleteId);
+      await deleteTransaction.mutateAsync(deleteId);
       toast.success("Transaction deleted");
     } catch {
       toast.error("Failed to delete");
@@ -215,7 +205,7 @@ export default function ExpensesPage() {
         onOpenChange={(v) => { setFormOpen(v); if (!v) setEditingExpense(null); }}
         onSubmit={handleSubmit}
         editingExpense={editingExpense}
-        isSubmitting={createExpense.isPending || updateExpense.isPending}
+        isSubmitting={createTransaction.isPending || updateTransaction.isPending}
       />
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

@@ -10,8 +10,15 @@ export default defineConfig(() => ({
     hmr: {
       overlay: false,
     },
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp",
+    },
   },
   plugins: [react()],
+  optimizeDeps: {
+    exclude: ["@sqlite.org/sqlite-wasm"],
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 
 export default function CategoriesPage() {
   const {
-    categories, getSubcategoriesForCategory, getCategoriesByType, getCategoryExpenseCount,
+    categories, getSubcategoriesForCategory, getCategoriesByType, getCategoryTransactionCount,
     createCategory, updateCategory, deleteCategory,
     createSubcategory, updateSubcategory, deleteSubcategory,
   } = useCategories();
@@ -92,7 +92,7 @@ export default function CategoriesPage() {
 
   const confirmDeleteCategory = async (cat: { id: string; name: string }) => {
     const subs = getSubcategoriesForCategory(cat.id);
-    const expCount = await getCategoryExpenseCount(cat.id);
+    const expCount = await getCategoryTransactionCount(cat.id);
     let warning = "";
     if (subs.length > 0 || expCount > 0) {
       const parts = [];
