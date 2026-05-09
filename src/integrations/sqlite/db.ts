@@ -47,22 +47,67 @@ async function createNativeAdapter(): Promise<DatabaseAdapter> {
 
 // ─── Web (SQLite WASM + Origin Private File System) ──────────────────────────
 
+const DB_STORAGE_KEY = "dollarwise_db";
+
 async function createWebAdapter(): Promise<DatabaseAdapter> {
-  // Dynamically imported so the WASM binary is only loaded on web
   const { default: sqlite3InitModule } = await import(/* @vite-ignore */ "@sqlite.org/sqlite-wasm");
   const sqlite3 = await sqlite3InitModule({ print: () => {}, printErr: () => {} });
 
-  // Use OPFS if available (persistent across sessions), fall back to in-memory
-  const db = "opfs" in sqlite3
-    ? new sqlite3.oo1.OpfsDb("/dollarwise.db")
-    : new sqlite3.oo1.DB("/dollarwise.db", "ct");
+  const db = new sqlite3.oo1.DB("/dollarwise.db", "ct");
+
+  // Restore database from localStorage if it exists
+  const saved = localStorage.getItem(DB_STORAGE_KEY);
+if (saved) {
+  try {
+    const binary = Uint8Array.from(atob(saved), c => c.charCodeAt(0));
+    const pData = sqlite3.wasm.alloc(binary.length);
+    sqlite3.wasm.heap8u().set(binary, pData);
+    sqlite3.capi.sqlite3_deserialize(
+      db.pointer,
+      "main",
+      pData,
+      binary.length,
+      binary.length,
+      0
+    );
+    console.log("DB restored from localStorage, size:", binary.length);
+  } catch (e) {
+    console.error("Failed to restore DB:", e);
+  }
+}
+
+  // Helper to persist DB to localStorage after every write
+function persist() {
+  try {
+    const stack = sqlite3.wasm.pstack.pointer;
+    const pSize = sqlite3.wasm.pstack.alloc(8); // allocate pointer for size
+    const pData = sqlite3.capi.sqlite3_serialize(
+      db.pointer,
+      "main",
+      pSize,
+      0
+    );
+    if (pData) {
+      const size = sqlite3.wasm.heap32u()[pSize / 4]; // read size from pointer
+      const binary = sqlite3.wasm.heap8u().slice(pData, pData + size);
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(binary)));
+      localStorage.setItem(DB_STORAGE_KEY, base64);
+      console.log("DB persisted, size:", base64.length, "bytes");
+    }
+    sqlite3.wasm.pstack.restore(stack);
+  } catch (e) {
+    console.error("Failed to persist DB:", e);
+  }
+}
 
   return {
     async initialize() {
       db.exec(SCHEMA_SQL);
+      persist(); // persist schema
     },
     async execute(sql, params = []) {
       db.exec({ sql, bind: params });
+      persist(); // persist after every write
     },
     async query<T>(sql: string, params: unknown[] = []): Promise<T[]> {
       const rows: T[] = [];
@@ -85,6 +130,7 @@ async function createWebAdapter(): Promise<DatabaseAdapter> {
       return rows[0] ?? null;
     },
     async close() {
+      persist();
       db.close();
     },
   };
