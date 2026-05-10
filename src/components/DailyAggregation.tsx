@@ -5,8 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { cn } from "@/lib/utils";
 import type { DailyRow, PeriodFilter } from "@/hooks/useAggregations";
 
-const INITIAL_ROWS = 30;
-const LOAD_MORE_STEP = 30;
+const INITIAL_ROWS = 7;
+const LOAD_MORE_STEP = 7;
 
 interface Props {
   rows: DailyRow[];
