@@ -21,9 +21,14 @@ export function useCategories() {
   const createCategory = useMutation({
     mutationFn: async ({ name, type }: { name: string; type: "income" | "expense" }) => {
       const id = crypto.randomUUID();
+      const now = new Date().toISOString();
       await db!.execute("INSERT INTO categories (id, name, type) VALUES (?, ?, ?)", [id, name, type]);
+      return { id, name, type, created_at: now, updated_at: now } as Category;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["categories"] }),
+    onSuccess: (newCat) => {
+      queryClient.setQueryData<Category[]>(["categories"], (old) => [...(old ?? []), newCat]);
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
   });
 
   const updateCategory = useMutation({
@@ -47,9 +52,14 @@ export function useCategories() {
   const createSubcategory = useMutation({
     mutationFn: async ({ name, categoryId }: { name: string; categoryId: string }) => {
       const id = crypto.randomUUID();
+      const now = new Date().toISOString();
       await db!.execute("INSERT INTO subcategories (id, name, category_id) VALUES (?, ?, ?)", [id, name, categoryId]);
+      return { id, name, category_id: categoryId, created_at: now, updated_at: now } as Subcategory;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["subcategories"] }),
+    onSuccess: (newSub) => {
+      queryClient.setQueryData<Subcategory[]>(["subcategories"], (old) => [...(old ?? []), newSub]);
+      queryClient.invalidateQueries({ queryKey: ["subcategories"] });
+    },
   });
 
   const updateSubcategory = useMutation({

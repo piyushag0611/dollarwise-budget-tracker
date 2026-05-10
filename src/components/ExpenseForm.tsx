@@ -5,19 +5,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useCategories } from "@/hooks/useCategories";
+import { CategoryCombobox } from "@/components/CategoryCombobox";
+import { toast } from "sonner";
 import type { CreateTransactionInput, TransactionType } from "@/hooks/useTransactions";
 import type { Transaction } from "@/integrations/sqlite/types";
 import { format } from "date-fns";
@@ -32,7 +27,7 @@ interface ExpenseFormProps {
 }
 
 export function ExpenseForm({ open, onOpenChange, onSubmit, editingExpense, isSubmitting }: ExpenseFormProps) {
-  const { getCategoriesByType, getSubcategoriesForCategory } = useCategories();
+  const { getCategoriesByType, getSubcategoriesForCategory, createCategory, createSubcategory } = useCategories();
   const [type, setType] = useState<TransactionType>("expense");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -63,6 +58,25 @@ export function ExpenseForm({ open, onOpenChange, onSubmit, editingExpense, isSu
       setIsRecurring(false);
     }
   }, [editingExpense, open]);
+
+  const handleCreateCategory = async (name: string) => {
+    try {
+      const cat = await createCategory.mutateAsync({ name, type });
+      setCategoryId(cat.id);
+      setSubcategoryId("");
+    } catch {
+      toast.error("Failed to create category");
+    }
+  };
+
+  const handleCreateSubcategory = async (name: string) => {
+    try {
+      const sub = await createSubcategory.mutateAsync({ name, categoryId });
+      setSubcategoryId(sub.id);
+    } catch {
+      toast.error("Failed to create subcategory");
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,31 +160,27 @@ export function ExpenseForm({ open, onOpenChange, onSubmit, editingExpense, isSu
 
           <div className="space-y-2">
             <Label>Category</Label>
-            <Select value={categoryId} onValueChange={(v) => { setCategoryId(v); setSubcategoryId(""); }}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {filteredCategories.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <CategoryCombobox
+              value={categoryId}
+              onChange={(id) => { setCategoryId(id); setSubcategoryId(""); }}
+              options={filteredCategories}
+              placeholder="Select category"
+              onCreate={handleCreateCategory}
+              isCreating={createCategory.isPending}
+            />
           </div>
 
-          {subcategories.length > 0 && (
+          {categoryId && (
             <div className="space-y-2">
               <Label>Subcategory</Label>
-              <Select value={subcategoryId} onValueChange={setSubcategoryId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select subcategory (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {subcategories.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <CategoryCombobox
+                value={subcategoryId}
+                onChange={setSubcategoryId}
+                options={subcategories}
+                placeholder="Select subcategory"
+                onCreate={handleCreateSubcategory}
+                isCreating={createSubcategory.isPending}
+              />
             </div>
           )}
 
