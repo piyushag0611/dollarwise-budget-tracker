@@ -8,7 +8,6 @@ import { DatabaseProvider } from "@/contexts/DatabaseContext";
 import { getDatabase } from "@/integrations/sqlite/db";
 import { AppLayout } from "@/components/AppLayout";
 import ExpensesPage from "@/pages/ExpensesPage";
-import CategoriesPage from "@/pages/CategoriesPage";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import NotFound from "@/pages/NotFound";
 
@@ -18,7 +17,6 @@ const AppRoutes = () => (
   <Routes>
     <Route path="/" element={<AppLayout><ExpensesPage /></AppLayout>} />
     <Route path="/analytics" element={<AppLayout><AnalyticsPage /></AppLayout>} />
-    <Route path="/categories" element={<AppLayout><CategoriesPage /></AppLayout>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
