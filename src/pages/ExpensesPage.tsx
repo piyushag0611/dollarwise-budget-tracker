@@ -1,10 +1,11 @@
 import { useState, useMemo, useCallback } from "react";
-import { Plus, SlidersHorizontal, TrendingUp, TrendingDown, ArrowUpDown } from "lucide-react";
+import { Plus, SlidersHorizontal, TrendingUp, TrendingDown, ArrowUpDown, Tags } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { MonthGroup } from "@/components/MonthGroup";
 import { ExpenseFilters } from "@/components/ExpenseFilters";
+import { CategorySheet } from "@/components/CategorySheet";
 import { useTransactions, type TransactionFilters as Filters } from "@/hooks/useTransactions";
 import type { Transaction } from "@/integrations/sqlite/types";
 import { useCategories } from "@/hooks/useCategories";
@@ -41,6 +42,7 @@ function groupByMonth(expenses: Transaction[]): { key: string; label: string; ex
 export default function ExpensesPage() {
   const [filters, setFilters] = useState<Filters>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Transaction | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -111,6 +113,15 @@ export default function ExpensesPage() {
           <p className="text-sm text-muted-foreground">Track your income and expenses</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setCategoriesOpen(true)}
+          >
+            <Tags className="h-4 w-4" />
+            <span className="hidden sm:inline">Categories</span>
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -199,6 +210,8 @@ export default function ExpensesPage() {
           ))}
         </div>
       )}
+
+      <CategorySheet open={categoriesOpen} onOpenChange={setCategoriesOpen} />
 
       <ExpenseForm
         open={formOpen}

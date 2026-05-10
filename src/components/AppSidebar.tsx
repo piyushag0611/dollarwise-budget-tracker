@@ -1,4 +1,4 @@
-import { DollarSign, Receipt, Tags, BarChart3 } from "lucide-react";
+import { DollarSign, Receipt, BarChart3 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -17,7 +17,6 @@ import {
 const navItems = [
   { title: "Transactions", url: "/", icon: Receipt },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
-  { title: "Categories", url: "/categories", icon: Tags },
 ];
 
 export function AppSidebar() {

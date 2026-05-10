@@ -33,7 +33,7 @@ export function ExpenseCard({ expense, category, subcategory, onEdit, onDelete }
             )}>
               {isIncome ? "Income" : "Expense"}
             </Badge>
-            {expense.is_recurring && (
+            {!!expense.is_recurring && (
               <RefreshCw className="h-3.5 w-3.5 text-primary" />
             )}
           </div>
