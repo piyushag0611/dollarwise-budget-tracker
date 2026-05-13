@@ -29,6 +29,7 @@ export function AppSidebar() {
   const [backupOpen, setBackupOpen] = useState(false);
 
   return (
+    <>
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarContent>
         <SidebarGroup>
@@ -76,5 +77,6 @@ export function AppSidebar() {
     </Sidebar>
 
     <BackupRestore open={backupOpen} onOpenChange={setBackupOpen} />
+    </>
   );
 }

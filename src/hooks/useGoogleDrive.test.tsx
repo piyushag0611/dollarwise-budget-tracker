@@ -9,6 +9,7 @@ vi.mock("@/lib/googleAuth", () => ({
   signInWithGoogle: vi.fn(),
   getStoredToken: vi.fn(),
   clearToken: vi.fn(),
+  consumeAuthRedirect: vi.fn().mockResolvedValue(null), // no redirect in tests
 }));
 
 vi.mock("@/lib/driveSync", () => ({

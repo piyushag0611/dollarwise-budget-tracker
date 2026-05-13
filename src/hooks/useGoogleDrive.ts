@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDatabase } from "@/contexts/DatabaseContext";
-import { signInWithGoogle, getStoredToken, clearToken } from "@/lib/googleAuth";
+import { signInWithGoogle, getStoredToken, clearToken, consumeAuthRedirect } from "@/lib/googleAuth";
 import { exportDatabase, importDatabase, uploadBackup, downloadBackup, getBackupInfo } from "@/lib/driveSync";
 import type { BackupInfo } from "@/lib/driveSync";
 
@@ -9,6 +9,16 @@ export function useGoogleDrive() {
   const db = useDatabase();
   const queryClient = useQueryClient();
   const [isSignedIn, setIsSignedIn] = useState(() => getStoredToken() !== null);
+
+  // Pick up the token if we just returned from a Google OAuth redirect
+  useEffect(() => {
+    consumeAuthRedirect().then((token) => {
+      if (token) {
+        setIsSignedIn(true);
+        queryClient.invalidateQueries({ queryKey: ["backup-info"] });
+      }
+    }).catch(console.error);
+  }, []);
 
   // ─── Auth ────────────────────────────────────────────────────────────────────
 
