@@ -1,17 +1,20 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Plus, SlidersHorizontal, TrendingUp, TrendingDown, ArrowUpDown, Tags } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { ExpenseForm } from "@/components/ExpenseForm";
-import { MonthGroup } from "@/components/MonthGroup";
 import { ExpenseFilters } from "@/components/ExpenseFilters";
 import { CategorySheet } from "@/components/CategorySheet";
+import { TransactionsTable } from "@/components/TransactionsTable";
+import { DailyAggregation } from "@/components/DailyAggregation";
+import { WeeklyAggregation } from "@/components/WeeklyAggregation";
+import { MonthlyAggregation } from "@/components/MonthlyAggregation";
 import { useTransactions, type TransactionFilters as Filters } from "@/hooks/useTransactions";
+import { useAggregations, type PeriodFilter } from "@/hooks/useAggregations";
 import type { Transaction } from "@/integrations/sqlite/types";
 import { useCategories } from "@/hooks/useCategories";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { format, parseISO } from "date-fns";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,22 +26,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-function groupByMonth(expenses: Transaction[]): { key: string; label: string; expenses: Transaction[] }[] {
-  const map = new Map<string, Expense[]>();
-  for (const e of expenses) {
-    const d = parseISO(e.date);
-    const key = format(d, "yyyy-MM");
-    if (!map.has(key)) map.set(key, []);
-    map.get(key)!.push(e);
-  }
-  return Array.from(map.entries())
-    .sort((a, b) => b[0].localeCompare(a[0]))
-    .map(([key, exps]) => {
-      const d = parseISO(key + "-01");
-      return { key, label: format(d, "MMMM yyyy"), expenses: exps };
-    });
-}
-
 export default function ExpensesPage() {
   const [filters, setFilters] = useState<Filters>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -46,30 +33,15 @@ export default function ExpensesPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Transaction | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [expandedMonths, setExpandedMonths] = useState<Set<string> | null>(null);
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter | null>(null);
+
+  const transactionSectionRef = useRef<HTMLDivElement>(null);
 
   const { transactions, isLoading, totalIncome, totalExpenses, net, createTransaction, updateTransaction, deleteTransaction } = useTransactions(filters);
   const { categories, subcategories } = useCategories();
+  const { daily, weekly, monthly } = useAggregations(transactions);
 
   const activeFilterCount = [filters.dateFrom, filters.dateTo, filters.expenseCategoryId, filters.expenseSubcategoryId, filters.incomeCategoryId, filters.incomeSubcategoryId, filters.type].filter(Boolean).length;
-
-  const monthGroups = useMemo(() => groupByMonth(transactions), [transactions]);
-
-  // Initialize expanded state: most recent month expanded, rest collapsed
-  const effectiveExpanded = useMemo(() => {
-    if (expandedMonths !== null) return expandedMonths;
-    if (monthGroups.length === 0) return new Set<string>();
-    return new Set([monthGroups[0].key]);
-  }, [expandedMonths, monthGroups]);
-
-  const toggleMonth = useCallback((key: string, open: boolean) => {
-    setExpandedMonths((prev) => {
-      const base = prev !== null ? new Set(prev) : (monthGroups.length > 0 ? new Set([monthGroups[0].key]) : new Set<string>());
-      if (open) base.add(key);
-      else base.delete(key);
-      return base;
-    });
-  }, [monthGroups]);
 
   const handleClearFilters = (newFilters: Filters) => {
     setFilters(newFilters);
@@ -77,6 +49,11 @@ export default function ExpensesPage() {
       setFiltersOpen(false);
     }
   };
+
+  const handlePeriodSelect = useCallback((pf: PeriodFilter) => {
+    setPeriodFilter(pf);
+    transactionSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   const handleSubmit = async (data: Parameters<typeof createTransaction.mutateAsync>[0]) => {
     try {
@@ -149,7 +126,7 @@ export default function ExpensesPage() {
         </CollapsibleContent>
       </Collapsible>
 
-      {/* Summary cards */}
+      {/* Section 1 — Summary cards (unchanged) */}
       <div className="grid grid-cols-3 gap-3">
         <div className="glass-card px-4 py-3 space-y-1">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -189,25 +166,41 @@ export default function ExpensesPage() {
             <div key={i} className="glass-card h-20 animate-pulse" />
           ))}
         </div>
-      ) : monthGroups.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <p className="text-sm">No transactions yet. Add your first one!</p>
-        </div>
       ) : (
-        <div className="space-y-3">
-          {monthGroups.map((group) => (
-            <MonthGroup
-              key={group.key}
-              label={group.label}
-              expenses={group.expenses}
+        <div className="space-y-4">
+          {/* Section 2 — Transactions table */}
+          <div ref={transactionSectionRef}>
+            <TransactionsTable
+              transactions={transactions}
               categories={categories}
               subcategories={subcategories}
-              isOpen={effectiveExpanded.has(group.key)}
-              onToggle={(open) => toggleMonth(group.key, open)}
-              onEdit={(e) => { setEditingExpense(e); setFormOpen(true); }}
+              periodFilter={periodFilter}
+              onClearPeriodFilter={() => setPeriodFilter(null)}
+              onEdit={(t) => { setEditingExpense(t); setFormOpen(true); }}
               onDelete={(id) => setDeleteId(id)}
             />
-          ))}
+          </div>
+
+          {/* Section 3 — Daily aggregation */}
+          <DailyAggregation
+            rows={daily}
+            periodFilter={periodFilter}
+            onPeriodSelect={handlePeriodSelect}
+          />
+
+          {/* Section 4 — Weekly aggregation */}
+          <WeeklyAggregation
+            rows={weekly}
+            periodFilter={periodFilter}
+            onPeriodSelect={handlePeriodSelect}
+          />
+
+          {/* Section 5 — Monthly aggregation */}
+          <MonthlyAggregation
+            rows={monthly}
+            periodFilter={periodFilter}
+            onPeriodSelect={handlePeriodSelect}
+          />
         </div>
       )}
 
