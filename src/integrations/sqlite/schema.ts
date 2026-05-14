@@ -6,8 +6,6 @@
 // - NUMERIC(12,2) → REAL
 
 export const SCHEMA_SQL = `
-PRAGMA journal_mode = WAL;
-
 CREATE TABLE IF NOT EXISTS categories (
   id         TEXT PRIMARY KEY,
   name       TEXT NOT NULL,

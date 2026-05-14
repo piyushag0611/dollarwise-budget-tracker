@@ -1,7 +1,8 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { DatabaseAdapter } from "@/integrations/sqlite/types";
 
 export const DatabaseContext = createContext<DatabaseAdapter | null>(null);
+const DatabaseRefreshContext = createContext<() => Promise<void>>(async () => {});
 
 export function DatabaseProvider({
   children,
@@ -12,18 +13,26 @@ export function DatabaseProvider({
 }) {
   const [db, setDb] = useState<DatabaseAdapter | null>(null);
 
-  useEffect(() => {
-    let adapter: DatabaseAdapter | undefined;
-    adapterFactory().then((a) => {
-      adapter = a;
-      setDb(a);
-    });
-    return () => { adapter?.close(); };
+  const initDb = useCallback(async () => {
+    const adapter = await adapterFactory();
+    setDb(adapter);
   }, [adapterFactory]);
 
-  return <DatabaseContext.Provider value={db}>{children}</DatabaseContext.Provider>;
+  useEffect(() => {
+    initDb();
+  }, [initDb]);
+
+  return (
+    <DatabaseRefreshContext.Provider value={initDb}>
+      <DatabaseContext.Provider value={db}>{children}</DatabaseContext.Provider>
+    </DatabaseRefreshContext.Provider>
+  );
 }
 
 export function useDatabase(): DatabaseAdapter | null {
   return useContext(DatabaseContext);
+}
+
+export function useDatabaseRefresh(): () => Promise<void> {
+  return useContext(DatabaseRefreshContext);
 }

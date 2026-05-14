@@ -14,6 +14,16 @@ export async function getDatabase(): Promise<DatabaseAdapter> {
   return instance;
 }
 
+// Called when Android activity lifecycle resets the SQLite connection.
+// Closes the stale adapter and forces a fresh connection on next getDatabase().
+export async function resetDatabase(): Promise<DatabaseAdapter> {
+  if (instance) {
+    try { await instance.close(); } catch {}
+    instance = null;
+  }
+  return getDatabase();
+}
+
 // ─── Android (Capacitor SQLite) ───────────────────────────────────────────────
 
 async function createNativeAdapter(): Promise<DatabaseAdapter> {
@@ -26,6 +36,7 @@ async function createNativeAdapter(): Promise<DatabaseAdapter> {
 
   return {
     async initialize() {
+      await db.query("PRAGMA journal_mode = WAL", []);
       await db.execute(SCHEMA_SQL);
     },
     async execute(sql, params = []) {

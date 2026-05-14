@@ -1,7 +1,10 @@
-import { DollarSign, Receipt, BarChart3 } from "lucide-react";
+import { useState } from "react";
+import { DollarSign, Receipt, BarChart3, CloudUpload } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NavLink } from "@/components/NavLink";
+import { BackupRestore } from "@/components/BackupRestore";
 import { useLocation } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
@@ -23,8 +26,10 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const [backupOpen, setBackupOpen] = useState(false);
 
   return (
+    <>
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarContent>
         <SidebarGroup>
@@ -57,9 +62,21 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-3">
+      <SidebarFooter className="p-3 space-y-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setBackupOpen(true)}
+          className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+        >
+          <CloudUpload className="h-4 w-4 shrink-0" />
+          {!collapsed && <span>Backup</span>}
+        </Button>
         <ThemeToggle collapsed={collapsed} />
       </SidebarFooter>
     </Sidebar>
+
+    <BackupRestore open={backupOpen} onOpenChange={setBackupOpen} />
+    </>
   );
 }
