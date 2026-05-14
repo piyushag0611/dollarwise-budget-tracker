@@ -34,8 +34,8 @@ export function BackupRestore({ open, onOpenChange }: BackupRestoreProps) {
   const handleSignIn = async () => {
     try {
       await signIn();
-    } catch {
-      toast.error("Sign in failed. Please try again.");
+    } catch (e) {
+      toast.error(`Sign in failed: ${JSON.stringify(e)}`);
     }
   };
 
@@ -43,8 +43,8 @@ export function BackupRestore({ open, onOpenChange }: BackupRestoreProps) {
     try {
       await backup();
       toast.success("Backup complete.");
-    } catch {
-      toast.error("Backup failed. Please try again.");
+    } catch (e) {
+      toast.error(`Backup failed: ${(e as Error).message ?? JSON.stringify(e)}`);
     }
   };
 

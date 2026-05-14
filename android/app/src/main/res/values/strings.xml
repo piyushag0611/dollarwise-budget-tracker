@@ -4,4 +4,5 @@
     <string name="title_activity_main">DollarWise</string>
     <string name="package_name">com.dollarwise.app</string>
     <string name="custom_url_scheme">com.dollarwise.app</string>
+    <string name="server_client_id">1030290473472-ft8s3csn3vt7s1va7c569pcogavvb21b.apps.googleusercontent.com</string>
 </resources>

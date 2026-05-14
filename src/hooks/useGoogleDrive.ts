@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useDatabase } from "@/contexts/DatabaseContext";
+import { Capacitor } from "@capacitor/core";
+import { useDatabase, useDatabaseRefresh } from "@/contexts/DatabaseContext";
 import { signInWithGoogle, getStoredToken, clearToken, consumeAuthRedirect } from "@/lib/googleAuth";
 import { exportDatabase, importDatabase, uploadBackup, downloadBackup, getBackupInfo } from "@/lib/driveSync";
 import type { BackupInfo } from "@/lib/driveSync";
 
 export function useGoogleDrive() {
   const db = useDatabase();
+  const refreshDb = useDatabaseRefresh();
   const queryClient = useQueryClient();
   const [isSignedIn, setIsSignedIn] = useState(() => getStoredToken() !== null);
 
@@ -24,6 +26,9 @@ export function useGoogleDrive() {
 
   const signIn = async () => {
     await signInWithGoogle();
+    // Native sign-in pauses the WebView activity which can reset the SQLite
+    // connection — refresh the context adapter before anything else runs.
+    if (Capacitor.isNativePlatform()) await refreshDb();
     setIsSignedIn(true);
     queryClient.invalidateQueries({ queryKey: ["backup-info"] });
   };

@@ -29,6 +29,13 @@
                 <data android:scheme="com.dollarwise.app" />
             </intent-filter>
 
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.googleusercontent.apps.1030290473472-ghgj7ohiuman7ajvrdmk7iuv9671m9qv" />
+            </intent-filter>
+
         </activity>
 
         <provider

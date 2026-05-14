@@ -108,7 +108,7 @@ async function signInNative(): Promise<string> {
   const { GoogleAuth } = await import(/* @vite-ignore */ "@codetrix-studio/capacitor-google-auth");
 
   await GoogleAuth.initialize({
-    clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+    clientId: import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID,
     scopes: ["profile", "email", SCOPES],
     grantOfflineAccess: false,
   });
