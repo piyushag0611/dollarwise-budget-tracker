@@ -26,3 +26,5 @@ dist-ssr
 .claude
 google_client_secret.json
 
+.env
+
